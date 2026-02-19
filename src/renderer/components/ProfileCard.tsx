@@ -1,65 +1,97 @@
-import type { Profile } from '@shared/types'
+import { useState } from 'react'
+import { Card, Button, Dropdown, Typography, Space, Tag, message } from 'antd'
+import {
+  CodeOutlined,
+  GlobalOutlined,
+  DownOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons'
+import type { Profile, LaunchScope } from '@shared/types'
 import { getCliTypes } from '@shared/cliTypes'
-import { Play, Pencil, Trash2, Check } from 'lucide-react'
+import type { MenuProps } from 'antd'
+
+const { Text } = Typography
 
 interface ProfileCardProps {
   profile: Profile
-  isActive: boolean
-  onUse: () => void
+  onLaunch: (scope: LaunchScope) => Promise<void>
   onEdit: () => void
   onDelete: () => void
 }
 
-export function ProfileCard({ profile, isActive, onUse, onEdit, onDelete }: ProfileCardProps) {
+export function ProfileCard({ profile, onLaunch, onEdit, onDelete }: ProfileCardProps) {
   const cliTypes = getCliTypes()
   const cliType = cliTypes.find((c) => c.id === profile.cliTypeId)
+  const [launching, setLaunching] = useState(false)
+
+  const doLaunch = async (scope: LaunchScope) => {
+    setLaunching(true)
+    try {
+      await onLaunch(scope)
+    } finally {
+      setLaunching(false)
+    }
+  }
+
+  const dropdownItems: MenuProps['items'] = [
+    {
+      key: 'local',
+      icon: <CodeOutlined />,
+      label: '仅新窗口生效',
+      onClick: () => doLaunch('local'),
+    },
+    {
+      key: 'global',
+      icon: <GlobalOutlined />,
+      label: '全局生效（写入 shell 配置）',
+      onClick: () => doLaunch('global'),
+    },
+  ]
 
   return (
-    <div
-      className={`rounded-xl p-4 bg-surface border shadow-card transition-colors duration-200 ${
-        isActive
-          ? 'border-primary ring-2 ring-primary/20'
-          : 'border-gray-200 hover:border-gray-300 hover:shadow-card-hover'
-      }`}
+    <Card
+      size="small"
+      hoverable
+      styles={{
+        body: { padding: '16px 20px' },
+      }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-base font-semibold text-text-primary m-0 truncate">{profile.name}</h3>
-          <p className="text-xs text-text-secondary mt-1">{cliType?.name ?? profile.cliTypeId}</p>
-          <p className="text-xs text-text-muted mt-0.5" aria-hidden>用量：—</p>
+        <div className="min-w-0 flex-1">
+          <Text strong className="text-base block truncate">{profile.name}</Text>
+          <Space size={4} className="mt-1">
+            <Tag color="green" bordered={false}>{cliType?.name ?? profile.cliTypeId}</Tag>
+          </Space>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onUse}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px] min-w-[44px] ${
-              isActive
-                ? 'bg-primary text-white border border-primary cursor-default'
-                : 'bg-primary text-white border border-primary hover:bg-primary-hover hover:border-primary-hover'
-            }`}
-            aria-label={isActive ? '当前使用中' : '使用此配置'}
+
+        <Space size={8}>
+          <Dropdown.Button
+            type="primary"
+            icon={<DownOutlined />}
+            menu={{ items: dropdownItems }}
+            onClick={() => doLaunch('local')}
+            loading={launching}
+            disabled={launching}
           >
-            {isActive ? <Check className="w-4 h-4 shrink-0" aria-hidden /> : <Play className="w-4 h-4 shrink-0" aria-hidden />}
-            <span className="hidden sm:inline">{isActive ? '当前使用' : '使用此配置'}</span>
-          </button>
-          <button
-            type="button"
+            <CodeOutlined />
+            以当前启动
+          </Dropdown.Button>
+
+          <Button
+            icon={<EditOutlined />}
             onClick={onEdit}
-            className="inline-flex items-center justify-center p-2 rounded-lg border border-gray-300 bg-surface text-text-primary cursor-pointer transition-colors duration-200 hover:bg-gray-50 hover:border-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px] min-w-[44px]"
             aria-label="编辑方案"
-          >
-            <Pencil className="w-4 h-4" aria-hidden />
-          </button>
-          <button
-            type="button"
+          />
+          <Button
+            icon={<DeleteOutlined />}
+            danger
             onClick={onDelete}
-            className="inline-flex items-center justify-center p-2 rounded-lg border border-gray-300 bg-surface text-text-primary cursor-pointer transition-colors duration-200 hover:bg-red-50 hover:border-red-300 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 min-h-[44px] min-w-[44px]"
             aria-label="删除方案"
-          >
-            <Trash2 className="w-4 h-4" aria-hidden />
-          </button>
-        </div>
+          />
+        </Space>
       </div>
-    </div>
+    </Card>
   )
 }

@@ -1,15 +1,16 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
-import { getProfiles, saveProfile, deleteProfile, getActiveProfileId, setActiveProfileId } from './store'
+import { getProfiles, saveProfile, deleteProfile } from './store'
 import { getCliTypes } from '../shared/cliTypes'
-import { activateProfile } from './activate'
+import { launchProfile } from './launcher'
+import { detectAllCliStatus } from './detector'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 900,
-    height: 700,
+    width: 960,
+    height: 740,
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
@@ -17,7 +18,6 @@ function createWindow(): void {
     },
   })
 
-  // 无菜单栏，避免 File/Edit 等默认工具栏
   Menu.setApplicationMenu(null)
 
   if (isDev) {
@@ -26,9 +26,9 @@ function createWindow(): void {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // IPC handlers
   ipcMain.handle('getProfiles', () => getProfiles())
   ipcMain.handle('getCliTypes', () => getCliTypes())
+
   ipcMain.handle('saveProfile', (_e, profile: unknown) => {
     try {
       if (!profile || typeof profile !== 'object' || !('id' in profile) || !('name' in profile) || !('cliTypeId' in profile) || !('env' in profile)) {
@@ -45,14 +45,19 @@ function createWindow(): void {
       return { success: false as const, error: message }
     }
   })
+
   ipcMain.handle('deleteProfile', (_e, id: string) => deleteProfile(id))
-  ipcMain.handle('getActiveProfileId', () => getActiveProfileId())
-  ipcMain.handle('setActiveProfileId', (_e, id: string | null) => setActiveProfileId(id))
-  ipcMain.handle('activateProfile', async (_e, profileId: string) => {
-    const result = activateProfile(profileId)
-    if (result.success) setActiveProfileId(profileId)
-    return result
+
+  ipcMain.handle('launchProfile', (_e, profileId: string, scope?: string) => {
+    try {
+      return launchProfile(profileId, (scope === 'global' ? 'global' : 'local'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return { success: false, error: message }
+    }
   })
+
+  ipcMain.handle('detectCliStatus', () => detectAllCliStatus())
 }
 
 app.whenReady().then(createWindow)

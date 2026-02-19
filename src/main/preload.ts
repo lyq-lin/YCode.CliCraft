@@ -1,7 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Profile } from '../shared/types'
-import type { CliType } from '../shared/types'
-import type { ActivateResult } from './activate'
+import type { Profile, CliType, LaunchResult, LaunchScope, CliStatusInfo } from '../shared/types'
 
 const api = {
   getProfiles: (): Promise<Profile[]> => ipcRenderer.invoke('getProfiles'),
@@ -9,9 +7,9 @@ const api = {
   saveProfile: (profile: Profile): Promise<{ success: true } | { success: false; error: string }> =>
     ipcRenderer.invoke('saveProfile', profile),
   deleteProfile: (id: string): Promise<void> => ipcRenderer.invoke('deleteProfile', id),
-  getActiveProfileId: (): Promise<string | null> => ipcRenderer.invoke('getActiveProfileId'),
-  setActiveProfileId: (id: string | null): Promise<void> => ipcRenderer.invoke('setActiveProfileId', id),
-  activateProfile: (profileId: string): Promise<ActivateResult> => ipcRenderer.invoke('activateProfile', profileId),
+  launchProfile: (profileId: string, scope?: LaunchScope): Promise<LaunchResult> =>
+    ipcRenderer.invoke('launchProfile', profileId, scope),
+  detectCliStatus: (): Promise<CliStatusInfo[]> => ipcRenderer.invoke('detectCliStatus'),
 }
 
 contextBridge.exposeInMainWorld('clicraft', api)

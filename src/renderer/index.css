@@ -5,24 +5,27 @@
   --color-primary-hover: #096b39;
   --color-primary-light: #e8f5ee;
   --color-surface: #ffffff;
-  --color-surface-muted: #f5f5f5;
+  --color-surface-muted: #f8f9fa;
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-muted: #64748b;
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
-  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
   color: var(--color-text-primary);
-  background-color: var(--color-surface-muted);
+  background: var(--color-surface-muted);
+  -webkit-font-smoothing: antialiased;
 }
+
 #root {
   min-height: 100vh;
 }
-button {
-  cursor: pointer;
+
+:where(.ant-btn) {
+  font-family: inherit;
 }

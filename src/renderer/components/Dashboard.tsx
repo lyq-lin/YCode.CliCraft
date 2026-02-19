@@ -1,32 +1,29 @@
 import { useState } from 'react'
-import type { Profile } from '@shared/types'
-import { Plus } from 'lucide-react'
+import { Button, Typography, Space, Empty, App as AntApp } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
+import type { Profile, LaunchScope } from '@shared/types'
 import { ProfileCard } from './ProfileCard'
 import { ProfileForm } from './ProfileForm'
-import { ActivateToast } from './ActivateToast'
+import { CliStatusPanel } from './CliStatusPanel'
+
+const { Title } = Typography
 
 interface DashboardProps {
   profiles: Profile[]
-  activeProfileId: string | null
   onRefresh: () => void | Promise<void>
-  onActivate: (id: string | null) => void
 }
 
-export function Dashboard({ profiles, activeProfileId, onRefresh, onActivate }: DashboardProps) {
+export function Dashboard({ profiles, onRefresh }: DashboardProps) {
   const [editing, setEditing] = useState<Profile | null>(null)
   const [creating, setCreating] = useState(false)
-  const [toast, setToast] = useState<{ command: string; commandPs1?: string } | null>(null)
+  const { message, modal } = AntApp.useApp()
 
-  const handleActivate = async (profile: Profile) => {
-    const result = await window.clicraft.activateProfile(profile.id)
+  const handleLaunch = async (profile: Profile, scope: LaunchScope) => {
+    const result = await window.clicraft.launchProfile(profile.id, scope)
     if (result.success) {
-      onActivate(profile.id)
-      setToast({
-        command: result.command,
-        commandPs1: result.commandPs1,
-      })
+      message.success(result.message || '启动成功')
     } else {
-      alert(result.error || '激活失败')
+      message.error(result.error || '启动失败')
     }
   }
 
@@ -37,15 +34,23 @@ export function Dashboard({ profiles, activeProfileId, onRefresh, onActivate }: 
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除该配置方案？')) return
-    try {
-      await window.clicraft.deleteProfile(id)
-      await onRefresh()
-      if (activeProfileId === id) onActivate(null)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      alert('删除失败：' + message)
-    }
+    modal.confirm({
+      title: '确认删除',
+      content: '确定删除该配置方案？此操作不可恢复。',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await window.clicraft.deleteProfile(id)
+          await onRefresh()
+          message.success('已删除')
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          message.error('删除失败：' + msg)
+        }
+      },
+    })
   }
 
   if (editing || creating) {
@@ -64,56 +69,47 @@ export function Dashboard({ profiles, activeProfileId, onRefresh, onActivate }: 
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-6">
-      <header className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-text-primary m-0 tracking-tight">CliCraft</h1>
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-surface shadow-card text-text-primary text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-gray-50 hover:border-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          aria-label="新建方案"
-        >
-          <Plus className="w-4 h-4 shrink-0" aria-hidden />
-          新建方案
-        </button>
-      </header>
-
-      {profiles.length === 0 ? (
-        <div className="text-center py-12 px-6 bg-surface rounded-xl border border-dashed border-gray-300 text-text-secondary">
-          <p className="m-0 text-text-secondary">还没有任何配置方案</p>
-          <p className="mt-1 text-text-muted text-sm">点击「新建方案」添加第一套配置（如 DeepSeek、智谱等）</p>
-          <button
-            type="button"
+    <div className="max-w-3xl mx-auto px-6 py-6 space-y-8">
+      <section>
+        <header className="flex items-center justify-between mb-4">
+          <Title level={3} className="!m-0">CliCraft</Title>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={() => setCreating(true)}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-surface text-text-primary text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
-            <Plus className="w-4 h-4 shrink-0" aria-hidden />
             新建方案
-          </button>
-        </div>
-      ) : (
-        <ul className="flex flex-col gap-3 list-none p-0 m-0">
-          {profiles.map((p) => (
-            <li key={p.id}>
+          </Button>
+        </header>
+
+        {profiles.length === 0 ? (
+          <div className="bg-white rounded-xl border border-dashed border-gray-300 py-12 px-6">
+            <Empty description="还没有任何配置方案">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setCreating(true)}
+              >
+                新建方案
+              </Button>
+            </Empty>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {profiles.map((p) => (
               <ProfileCard
+                key={p.id}
                 profile={p}
-                isActive={p.id === activeProfileId}
-                onUse={() => handleActivate(p)}
+                onLaunch={(scope) => handleLaunch(p, scope)}
                 onEdit={() => setEditing(p)}
                 onDelete={() => handleDelete(p.id)}
               />
-            </li>
-          ))}
-        </ul>
-      )}
+            ))}
+          </div>
+        )}
+      </section>
 
-      {toast && (
-        <ActivateToast
-          command={toast.command}
-          commandPs1={toast.commandPs1}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <CliStatusPanel />
     </div>
   )
 }

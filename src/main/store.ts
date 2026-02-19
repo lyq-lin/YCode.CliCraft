@@ -8,7 +8,6 @@ const CONFIG_FILE = join(CONFIG_DIR, 'store.json')
 
 const defaultData: StoreData = {
   profiles: [],
-  activeProfileId: null,
 }
 
 function ensureConfigDir(): void {
@@ -27,7 +26,6 @@ function readData(): StoreData {
     const data = JSON.parse(raw) as StoreData
     return {
       profiles: Array.isArray(data.profiles) ? data.profiles : defaultData.profiles,
-      activeProfileId: data.activeProfileId ?? defaultData.activeProfileId,
     }
   } catch {
     return { ...defaultData }
@@ -43,7 +41,6 @@ export function getProfiles(): Profile[] {
   return readData().profiles
 }
 
-/** 规范化 env 为纯字符串，避免写入非字符串导致后续解析问题 */
 function normalizeEnv(env: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [k, v] of Object.entries(env)) {
@@ -74,19 +71,6 @@ export function saveProfile(profile: Profile): void {
 export function deleteProfile(id: string): void {
   const data = readData()
   data.profiles = data.profiles.filter((p) => p.id !== id)
-  if (data.activeProfileId === id) {
-    data.activeProfileId = null
-  }
-  writeData(data)
-}
-
-export function getActiveProfileId(): string | null {
-  return readData().activeProfileId
-}
-
-export function setActiveProfileId(id: string | null): void {
-  const data = readData()
-  data.activeProfileId = id
   writeData(data)
 }
 
