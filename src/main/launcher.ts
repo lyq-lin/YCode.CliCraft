@@ -3,6 +3,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync, chmodSync, appendFi
 import { join } from 'path'
 import { getProfileById } from './store'
 import { getCliTypeById } from '../shared/cliTypes'
+import { getProviderById } from '../shared/providers'
 import type { LaunchScope, LaunchResult } from '../shared/types'
 
 const HOME = process.env.HOME || process.env.USERPROFILE || ''
@@ -23,9 +24,44 @@ function buildEnv(profileId: string): { env: Record<string, string>; profileName
   if (!profile) return { error: '配置方案不存在' }
   const cliType = getCliTypeById(profile.cliTypeId)
   if (!cliType) return { error: 'CLI 类型不存在' }
+  
+  const provider = getProviderById(profile.providerId)
+  if (!provider) return { error: 'Provider 不存在' }
+
+  // 构建环境变量
+  const env: Record<string, string> = {}
+  
+  // 1. Provider 的环境变量（带默认值）
+  for (const envKey of provider.envKeys) {
+    const value = profile.env[envKey.key]
+    if (value) {
+      env[envKey.key] = value
+    } else if (envKey.key.includes('BASE_URL') && provider.baseUrlDefault) {
+      env[envKey.key] = provider.baseUrlDefault
+    }
+  }
+  
+  // 2. CLI 特定的环境变量
+  if (cliType.envDefaults) {
+    for (const [key, defaultValue] of Object.entries(cliType.envDefaults)) {
+      if (!(key in env) && defaultValue) {
+        env[key] = defaultValue
+      }
+    }
+  }
+  
+  // 3. 覆盖 profile 中显式设置的值
+  Object.assign(env, profile.env)
+  
+  // 4. 设置 MODEL 环境变量（如果选择了模型）
+  if (profile.model) {
+    const modelKey = cliType.id === 'claude-code' ? 'ANTHROPIC_MODEL' : 'OPENCODE_MODEL'
+    env[modelKey] = profile.model
+  }
+
   return {
-    env: { ...cliType.envDefaults, ...profile.env },
-    profileName: profile.name,
+    env,
+    profileName: `${profile.name} (${provider.name})`,
   }
 }
 

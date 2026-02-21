@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { getProfiles, saveProfile, deleteProfile } from './store'
 import { getCliTypes } from '../shared/cliTypes'
+import { getProvidersForCli } from '../shared/providers'
 import { launchProfile } from './launcher'
 import { detectAllCliStatus } from './detector'
 
@@ -28,10 +29,11 @@ function createWindow(): void {
 
   ipcMain.handle('getProfiles', () => getProfiles())
   ipcMain.handle('getCliTypes', () => getCliTypes())
+  ipcMain.handle('getProviders', (_e, cliTypeId: string) => getProvidersForCli(cliTypeId))
 
   ipcMain.handle('saveProfile', (_e, profile: unknown) => {
     try {
-      if (!profile || typeof profile !== 'object' || !('id' in profile) || !('name' in profile) || !('cliTypeId' in profile) || !('env' in profile)) {
+      if (!profile || typeof profile !== 'object' || !('id' in profile) || !('name' in profile) || !('cliTypeId' in profile) || !('providerId' in profile) || !('env' in profile)) {
         return { success: false as const, error: '无效的配置数据' }
       }
       const p = profile as Parameters<typeof saveProfile>[0]

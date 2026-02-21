@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Profile, CliType, LaunchResult, LaunchScope, CliStatusInfo } from '../shared/types'
+import type { Provider } from '../shared/providers'
 
 const api = {
   getProfiles: (): Promise<Profile[]> => ipcRenderer.invoke('getProfiles'),
   getCliTypes: (): Promise<CliType[]> => ipcRenderer.invoke('getCliTypes'),
+  getProviders: (cliTypeId: string): Promise<Provider[]> => ipcRenderer.invoke('getProviders', cliTypeId),
   saveProfile: (profile: Profile): Promise<{ success: true } | { success: false; error: string }> =>
     ipcRenderer.invoke('saveProfile', profile),
   deleteProfile: (id: string): Promise<void> => ipcRenderer.invoke('deleteProfile', id),

@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { Card, Button, Dropdown, Typography, Space, Tag, message } from 'antd'
+import { useState, useMemo } from 'react'
+import { Card, Button, Dropdown, Typography, Space, Tag, Tooltip } from 'antd'
 import {
   CodeOutlined,
   GlobalOutlined,
   DownOutlined,
   EditOutlined,
   DeleteOutlined,
-  LoadingOutlined,
 } from '@ant-design/icons'
 import type { Profile, LaunchScope } from '@shared/types'
 import { getCliTypes } from '@shared/cliTypes'
+import { getProviderById } from '@shared/providers'
 import type { MenuProps } from 'antd'
 
 const { Text } = Typography
@@ -24,6 +24,14 @@ interface ProfileCardProps {
 export function ProfileCard({ profile, onLaunch, onEdit, onDelete }: ProfileCardProps) {
   const cliTypes = getCliTypes()
   const cliType = cliTypes.find((c) => c.id === profile.cliTypeId)
+  const provider = useMemo(() => getProviderById(profile.providerId), [profile.providerId])
+  
+  // 获取模型信息
+  const modelInfo = useMemo(() => {
+    if (!provider || !profile.model) return null
+    return provider.models.find((m) => m.id === profile.model)
+  }, [provider, profile.model])
+  
   const [launching, setLaunching] = useState(false)
 
   const doLaunch = async (scope: LaunchScope) => {
@@ -61,8 +69,32 @@ export function ProfileCard({ profile, onLaunch, onEdit, onDelete }: ProfileCard
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <Text strong className="text-base block truncate">{profile.name}</Text>
-          <Space size={4} className="mt-1">
+          <Space size={4} className="mt-1" wrap>
+            {/* CLI 类型 */}
             <Tag color="green" bordered={false}>{cliType?.name ?? profile.cliTypeId}</Tag>
+            
+            {/* Provider */}
+            {provider && (
+              <Tooltip title={`协议: ${provider.protocol}`}>
+                <Tag color="blue" bordered={false}>{provider.name}</Tag>
+              </Tooltip>
+            )}
+            
+            {/* 模型 */}
+            {profile.model && (
+              <Tooltip title={modelInfo?.description || profile.model}>
+                <Tag color="purple" bordered={false}>
+                  {modelInfo?.name || profile.model}
+                </Tag>
+              </Tooltip>
+            )}
+            
+            {/* 协议类型小标签 */}
+            {provider && (
+              <Tag color="default" bordered={false} className="text-xs">
+                {provider.protocol}
+              </Tag>
+            )}
           </Space>
         </div>
 

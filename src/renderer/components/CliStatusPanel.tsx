@@ -138,6 +138,14 @@ export function CliStatusPanel() {
     refresh()
   }, [])
 
+  const getAuthMethodTagColor = (type: string) => {
+    switch (type) {
+      case 'oauth': return 'blue'
+      case 'api_key': return 'purple'
+      default: return 'default'
+    }
+  }
+
   const collapseItems = statuses.map((status) => {
     const fileEntries = status.entries.filter((e) => e.source === 'file')
     const envEntries = status.entries.filter((e) => e.source === 'env')
@@ -150,10 +158,27 @@ export function CliStatusPanel() {
           <Tag color={status.found ? 'success' : 'default'} bordered={false}>
             {status.found ? '已检测到' : '未检测到'}
           </Tag>
+          {status.authMethod && (
+            <Tag 
+              color={getAuthMethodTagColor(status.authMethod.type)} 
+              bordered={false}
+              title={status.authMethod.details}
+            >
+              {status.authMethod.displayName}
+            </Tag>
+          )}
         </Space>
       ),
       children: status.found ? (
         <div>
+          {status.authMethod?.details && (
+            <div className="mb-3 px-3 py-2 bg-gray-50 rounded-lg">
+              <Text type="secondary" className="text-xs">
+                <span className="font-medium">认证方式：</span>
+                {status.authMethod.details}
+              </Text>
+            </div>
+          )}
           {fileEntries.map((entry, idx) => (
             <SectionBlock key={`file-${idx}`} entry={entry} />
           ))}
